@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Subnet Information Tool</title>
+    </head>
+    <body>
+
+        <input name="address" id="address" type="text" style="height:16px;width:300px" placeholder="Input IP Address Ex: 10.0.0.4">
+        <input name="mask" id="mask" type="text" style="height:16px;width:300px" placeholder="Input Subnet Mask Ex: 255.255.255.0 or /24">
+        <input type="button" value="Calculate" onclick="calculateButtonValues()">
+        <canvas id="textArea" width="800" height="400" </canvas>
+        <script src="subnet.js"></script>
+
+
+    </body>
+</html>
