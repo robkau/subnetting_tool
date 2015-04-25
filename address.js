@@ -19,6 +19,117 @@ function Address(addressIn, maskIn) {
   this.nshBits = info.nshBits
 }
 
+
+function convertDecimalMaskToCIDR(maskIn) {
+  var cidrCounter = 0
+
+  for (var p = 1; p <= 4; p++) {
+    var octetValue = getOctetValue(maskIn, p)
+    for (var z = 7; z >= 0; z--)
+      if (octetValue >= Math.pow(2, z)) {
+        cidrCounter++
+        octetValue -= Math.pow(2, z)
+      }
+  }
+
+  return '/' + cidrCounter;
+
+}
+
+function convertCIDRMaskToDecimal(maskIn) {
+
+  newMaskIn = maskIn.slice(1)
+  if (parseInt(newMaskIn) < 0 || parseInt(newMaskIn) > 32)
+    throw new Error("If you give the mask in CIDR notation it must be between 0 and 32")
+
+  maskIn = convertMaskToBinary(maskIn);
+  var stringToReturn = '';
+
+  for (var i = 1; i <= 4; i++) {
+    var binaryOctet = getOctetValue(maskIn, i).toString();
+    var octetValue = 0;
+    for (var t = 0; t < 8; t++) {
+      if (binaryOctet[t] === '1')
+        octetValue += Math.pow(2, 7 - t);
+    }
+    stringToReturn += octetValue + '.'
+  }
+  return stringToReturn.substring(0, stringToReturn.length - 1)
+
+
+
+  return stringToReturn.substring(0, stringToReturn.length - 1)
+
+}
+
+
+
+function convertMaskToBinary(maskIn) {
+
+  if (maskIn[0] === '/') { //They gave it in CIDR notation
+    maskIn = maskIn.slice(1)
+    var binaryArray = [
+      [0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0,
+       0, 0, 0, 0, 0, 0, 0, 0]
+    ]
+    for (var j = 0; j < 32; j++)
+      if (maskIn > 0) {
+        binaryArray[j] = '1'
+        maskIn--;
+      } else
+        binaryArray[j] = '0';
+
+    stringToReturn = '';
+    arrayString = binaryArray.join('');
+    for (var i = 0; i < 4; i++)
+      stringToReturn += arrayString.substring(i * 8, (i + 1) * 8) + '.'
+    return stringToReturn.substring(0, stringToReturn.length - 1)
+  } else
+    return stringToBinary(maskIn)
+}
+
+
+
+function isMaskValid(addressIn, maskIn) {
+
+  //Make sure mask is in DECIMAL format for processing
+  if (maskIn[0] == '/') {
+    if (!/^\/\d+$/.test(maskIn))
+      throw new Error("Mask must contain only digits");
+    maskIn = convertCIDRMaskToDecimal(maskIn);
+
+  }
+
+
+  try {
+    isAddressValid(maskIn)
+  } catch (e) {
+    //Same checks as addresses, but we allow the first octet to be zero this time
+    if (e.message !== "First section of address cannot be zero.")
+      throw e;
+  }
+
+
+  //Convert to Binary now
+  var binaryMaskIn = convertMaskToBinary(maskIn);
+
+  //Make sure mask is not too short for the network class
+
+
+
+  //Make sure the mask is sequential ones and the rest zeros
+  if (!/^(1|\.)*(0|\.)*$/.test(binaryMaskIn))
+    throw new Error(
+      "Invalid Mask detected. The binary representation must be sequential ones and the rest zeros");
+
+
+
+
+
+}
+
 function isAddressValid(addressIn) {
   //Has to have 4 sections separated by periods
   //Each section has to have 1 through 3 digits
@@ -60,16 +171,23 @@ function octetToBinary(stringIn) {
 function getOctetValue(addressIn, octetNumber) {
 
   //Returns the 1st, 2nd, 3rd, or 4th octet value as an integer. AddressIn is a string.
+  if (octetNumber < 1)
+    throw new Error("Wrong value in getOctetValue call");
   if (octetNumber === 1)
     if (addressIn.indexOf('.') != -1)
       return parseInt(addressIn.substring(0, addressIn.indexOf('.')));
-    else return addressIn;
+    else return parseInt(addressIn);
   return getOctetValue(addressIn.substring(addressIn.indexOf('.') + 1), octetNumber - 1);
 
 }
 
 
-function isMaskValid(maskIn) {
+
+////////////////////////// old stuff below, only for reference
+
+
+
+function isMaskValidOld(maskIn) {
   //Similar 
   //Has to have 4 sections separated by periods
   //Each section has to have 1 through 3 digits
@@ -87,7 +205,7 @@ function isMaskValid(maskIn) {
       throw new Error("Address sections must be between 0 and 255.")
 }
 
-function isMaskValid(addressIn, maskIn) {
+function isMaskValidOlder(addressIn, maskIn) {
 
   //ADD CHECKS FOR MASKS TOO SHORT (Class B network wih a mask of /4 for example)
 
@@ -175,7 +293,7 @@ function isMaskValid(addressIn, maskIn) {
 
 
 
-function addressToBinary(addressIn) {
+function addressToBinaryOld(addressIn) {
 
   //First we make sure that this address is valid
   //This function throws an error if the address is not valid
@@ -211,20 +329,20 @@ function addressToBinary(addressIn) {
   return binaryString
 }
 
-function maskToBinary(maskIn) {
+function maskToBinaryOld(maskIn) {
 
 }
 
 
 //A somewhat monolithic function that returns an object holding several values that give info about the network
-function getNetworkInfo(addressIn, maskIn) {
+function getNetworkInfoOld(addressIn, maskIn) {
   maskIn = convertMaskToBinary(maskIn)
 
 
 }
 
 
-function getSignificantBits(addressIn, maskIn) {
+function getSignificantBitsOld(addressIn, maskIn) {
   //Return length 3 array. El 0 = network bits, el 1 = subnet bits, el 2 = host bits
   var bitsToReturn = [-1, -1, -1]
     //Network Bits
@@ -258,7 +376,7 @@ function getSignificantBits(addressIn, maskIn) {
 
 
 
-function calcNetwork(addressIn, maskIn) {
+function calcNetworkOld(addressIn, maskIn) {
   addressSplit = addressIn.split('.')
   for (i = 0; i < 4; i++) {
     addressSplit[i] = parseInt(addressSplit[i])
@@ -319,7 +437,7 @@ function calcNetwork(addressIn, maskIn) {
 
 }
 
-function maskToBinary(maskIn) {
+function maskToBinaryOld(maskIn) {
   if (maskIn[0] === '/') {
     maskIn = maskIn.slice(1)
     var binaryArray = [
@@ -356,5 +474,10 @@ exports.isAddressValid = isAddressValid;
 exports.isMaskValid = isMaskValid;
 exports.octetToBinary = octetToBinary;
 exports.stringToBinary = stringToBinary;
+exports.isMaskValid = isMaskValid;
+exports.convertMaskToBinary = convertMaskToBinary;
+exports.convertDecimalMaskToCIDR = convertDecimalMaskToCIDR;
+exports.convertCIDRMaskToDecimal = convertCIDRMaskToDecimal;
+exports.getOctetValue = getOctetValue;
 //exports.convertToCIDR = convertToCIDR;
 //exports.getNetworkInfo = getNetworkInfo;
