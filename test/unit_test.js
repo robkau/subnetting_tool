@@ -9,35 +9,11 @@ var chai = require('chai'),
   convertMaskToBinary = require('./../address').convertMaskToBinary,
   convertDecimalMaskToCIDR = require('./../address').convertDecimalMaskToCIDR,
   convertCIDRMaskToDecimal = require('./../address').convertCIDRMaskToDecimal,
-  getOctetValue = require('./../address').getOctetValue;
+  getOctetValue = require('./../address').getOctetValue,
+  getNetworkInfo = require('./../address').getNetworkInfo,
+  getSignificantBits = require('./../address').getSignificantBits,
+  Address = require('./../address').Address;
 
-
-//Figure out why the octet value function isn't working anmore
-suite('Why isnt Octet Value working anymore', function() {
-  test('See what it returns', function() {
-    assert.strictEqual(getOctetValue('1.2.3.4', 1), 1);
-    assert.strictEqual(getOctetValue('1.2.3.4', 2), 2);
-    assert.strictEqual(getOctetValue('1.2.3.4', 3), 3);
-    assert.strictEqual(getOctetValue('1.2.3.4', 4), 4);
-    assert.strictEqual(getOctetValue('100.200.300.400', 1), 100);
-    assert.strictEqual(getOctetValue('100.200.300.400', 2), 200);
-    assert.strictEqual(getOctetValue('100.200.300.400', 3), 300);
-    assert.strictEqual(getOctetValue('100.200.300.400', 4), 400);
-
-    assert.strictEqual(getOctetValue('11111111.11111111.11110000.00000000', 1), 11111111);
-    assert.strictEqual(getOctetValue('11111111.11111111.11110000.00000000', 2), 11111111);
-    assert.strictEqual(getOctetValue('11111111.11111111.11110000.00000000', 3), 11110000);
-    assert.strictEqual(getOctetValue('11111111.11111111.11110000.00000000', 4), 00000000);
-
-
-
-
-  })
-
-
-
-
-});
 
 //Determine whether or not we can tell if an address is valid
 suite('Address Validation', function() {
@@ -129,7 +105,6 @@ suite('Address Validation', function() {
     }, Error);
   });
 });
-
 //Test our methods to turn address and mask strings into binary numbers
 suite('String Conversion to Binary', function() {
   test('Handle individual octets', function() {
@@ -142,8 +117,6 @@ suite('String Conversion to Binary', function() {
     assert.strictEqual(octetToBinary('126'), '01111110');
     assert.strictEqual(octetToBinary('255'), '11111111');
   });
-
-
   test('Handle whole addresses', function() {
     assert.strictEqual(stringToBinary('128.0.0.0'), '10000000.00000000.00000000.00000000');
     assert.strictEqual(stringToBinary('0.0.0.0'), '00000000.00000000.00000000.00000000');
@@ -152,10 +125,8 @@ suite('String Conversion to Binary', function() {
     assert.strictEqual(stringToBinary('192.168.1.254'), '11000000.10101000.00000001.11111110');
     assert.strictEqual(stringToBinary('10.10.10.1'), '00001010.00001010.00001010.00000001');
     assert.strictEqual(stringToBinary('255.255.255.255'), '11111111.11111111.11111111.11111111');
-
   });
 });
-
 suite('Subnet Mask Validation and Transformation', function() {
   test('Has to have 4 sections separated by periods', function() {
     assert.throws(function() {
@@ -173,7 +144,7 @@ suite('Subnet Mask Validation and Transformation', function() {
   });
   test('First section can be zero', function() {
     assert.doesNotThrow(function() {
-      isMaskValid('192.0.0.0', '0.0.0.0')
+      isMaskValid('0.0.0.0', '0.0.0.0')
     }, Error);
   });
   test('Each section has 1 to 3 digits', function() {
@@ -230,8 +201,6 @@ suite('Subnet Mask Validation and Transformation', function() {
     assert.throws(function() {
       isMaskValid('192.0.0.0', '255.255.255.253')
     }, Error);
-
-
   });
   test('Accepts valid masks', function() {
     //All these should pass.
@@ -242,31 +211,33 @@ suite('Subnet Mask Validation and Transformation', function() {
       isMaskValid('192.0.0.0', '255.255.255.255')
     }, Error);
     assert.doesNotThrow(function() {
-      isMaskValid('192.0.0.0', '255.192.0.0')
+      isMaskValid('192.0.0.0', '255.255.255.0')
     }, Error);
     assert.doesNotThrow(function() {
-      isMaskValid('192.0.0.0', '/0')
+      isMaskValid('192.0.0.0', '/24')
     }, Error);
     assert.doesNotThrow(function() {
-      isMaskValid('192.0.0.0', '/1')
+      isMaskValid('192.0.0.0', '/25')
     }, Error);
     assert.doesNotThrow(function() {
-      isMaskValid('192.0.0.0', '/12')
+      isMaskValid('192.0.0.0', '/26')
     }, Error);
     assert.doesNotThrow(function() {
       isMaskValid('192.0.0.0', '/27')
     }, Error);
     assert.doesNotThrow(function() {
-      isMaskValid('192.0.0.0', '/12')
+      isMaskValid('192.0.0.0', '/28')
     }, Error);
     assert.doesNotThrow(function() {
       isMaskValid('192.0.0.0', '/32')
     }, Error);
-
-
   });
-
-
+  /* This test no longer applies as we assume everything is CIDR, and classful neworking is not in use
+  test('Does not accept masks too short for the network', function() {
+     assert.throws(function() {
+       isMaskValid('10.0.0.0', '/2')
+     }, Error);
+   });*/
 
   test('Can convert CIDR mask to binary notation', function() {
     assert.strictEqual(convertMaskToBinary('/0'), '00000000.00000000.00000000.00000000');
@@ -281,39 +252,67 @@ suite('Subnet Mask Validation and Transformation', function() {
     assert.strictEqual(convertMaskToBinary('/31'), '11111111.11111111.11111111.11111110');
     assert.strictEqual(convertMaskToBinary('/32'), '11111111.11111111.11111111.11111111');
   });
-
   test('Can convert decimal mask to CIDR notation', function() {
     assert.strictEqual(convertDecimalMaskToCIDR('255.255.255.0'), '/24');
     assert.strictEqual(convertDecimalMaskToCIDR('128.0.0.0'), '/1');
     assert.strictEqual(convertDecimalMaskToCIDR('255.255.255.255'), '/32');
     assert.strictEqual(convertDecimalMaskToCIDR('255.255.192.0'), '/18');
     assert.strictEqual(convertDecimalMaskToCIDR('0.0.0.0'), '/0');
-
   });
-
   test('Can convert CIDR mask to decimal notation', function() {
-
     assert.strictEqual(convertCIDRMaskToDecimal('/1'), '128.0.0.0');
     assert.strictEqual(convertCIDRMaskToDecimal('/24'), '255.255.255.0');
     assert.strictEqual(convertCIDRMaskToDecimal('/32'), '255.255.255.255');
     assert.strictEqual(convertCIDRMaskToDecimal('/18'), '255.255.192.0');
     assert.strictEqual(convertCIDRMaskToDecimal('/0'), '0.0.0.0');
-
-
   });
-
-  test('Can convert binary mask to CIDR notation', function() {
-
-
-
+});
+suite('Can calculate network info from an address and mask', function() {
+  test('Determine class of networks', function() {
+    assert.strictEqual(getNetworkInfo('10.0.0.0', '/15').networkClass, 'Class A')
+    assert.strictEqual(getNetworkInfo('127.0.0.0', '/15').networkClass, 'Loopback and Diagnostic Class')
+    assert.strictEqual(getNetworkInfo('129.0.0.0', '/15').networkClass, 'Class B')
+    assert.strictEqual(getNetworkInfo('222.0.0.0', '/15').networkClass, 'Class C')
+    assert.strictEqual(getNetworkInfo('225.0.0.0', '/15').networkClass, 'Class D')
+    assert.strictEqual(getNetworkInfo('254.0.0.0', '/15').networkClass, 'Class E')
   });
-
-
-
-
-
-
-
-
-
+  test('Determine public or private network', function() {
+    assert.strictEqual(getNetworkInfo('10.0.0.0', '/15').publicOrPrivate, 'Public')
+    assert.strictEqual(getNetworkInfo('155.0.2.0', '/12').publicOrPrivate, 'Public')
+    assert.strictEqual(getNetworkInfo('127.0.0.0', '/15').publicOrPrivate, 'Special')
+    assert.strictEqual(getNetworkInfo('10.0.0.0', '/8').publicOrPrivate, 'Private')
+    assert.strictEqual(getNetworkInfo('172.17.0.0', '/12').publicOrPrivate, 'Private')
+    assert.strictEqual(getNetworkInfo('192.168.0.0', '/16').publicOrPrivate, 'Private')
+  });
+});
+suite('Can calculate significant bits', function() {
+  test('Class A networks', function() {
+    //assert.strictEqual(getSignificantBits('10.0.0.0', '/15').networkBits, 8)
+    assert.strictEqual(getSignificantBits('10.0.0.0', '/15').subnetBits, 15)
+    assert.strictEqual(getSignificantBits('10.0.0.0', '/15').hostBits, 17)
+  });
+  test('Class B networks', function() {
+    //assert.strictEqual(getSignificantBits('144.12.0.0', '/18').networkBits, 16)
+    assert.strictEqual(getSignificantBits('144.12.0.0', '/18').subnetBits, 18)
+    assert.strictEqual(getSignificantBits('144.12.0.0', '/18').hostBits, 14)
+  });
+  test('Class C networks', function() {
+    //assert.strictEqual(getSignificantBits('192.168.0.1', '/29').networkBits, 24)
+    assert.strictEqual(getSignificantBits('192.168.0.1', '/29').subnetBits, 29)
+    assert.strictEqual(getSignificantBits('192.168.0.1', '/29').hostBits, 3)
+  });
+});
+suite('Can construct the address and have all properties auto-calculate', function() {
+  test('Make a new address', function() {
+    var newAddress = new Address('192.168.1.254', '/16')
+    assert.strictEqual(newAddress.decimalAddress, '192.168.1.254');
+    assert.strictEqual(newAddress.binaryAddress, '11000000.10101000.00000001.11111110');
+    assert.strictEqual(newAddress.binaryMask, '11111111.11111111.00000000.00000000');
+    assert.strictEqual(newAddress.cidrMask, '/16');
+    assert.strictEqual(newAddress.networkClass, 'Class C');
+    assert.strictEqual(newAddress.publicOrPrivate, 'Private');
+    //assert.strictEqual(newAddress.nshBits.networkBits, 24);
+    assert.strictEqual(newAddress.nshBits.subnetBits, 16);
+    assert.strictEqual(newAddress.nshBits.hostBits, 16);
+  });
 });
