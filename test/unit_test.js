@@ -12,6 +12,7 @@ var chai = require('chai'),
   getOctetValue = require('./../address').getOctetValue,
   getNetworkInfo = require('./../address').getNetworkInfo,
   getSignificantBits = require('./../address').getSignificantBits,
+  getSubnetMagicNumber = require('./../address').getSubnetMagicNumber,
   Address = require('./../address').Address;
 
 
@@ -301,6 +302,20 @@ suite('Can calculate significant bits', function() {
     assert.strictEqual(getSignificantBits('192.168.0.1', '/29').subnetBits, 29)
     assert.strictEqual(getSignificantBits('192.168.0.1', '/29').hostBits, 3)
   });
+  test('Magic Number from CIDR', function() {
+    assert.strictEqual(getSubnetMagicNumber('/5'), 8);
+    assert.strictEqual(getSubnetMagicNumber('/31'), 2);
+    assert.strictEqual(getSubnetMagicNumber('/30'), 4);
+    assert.strictEqual(getSubnetMagicNumber('/24'), 1);
+    assert.strictEqual(getSubnetMagicNumber('/23'), 2);
+  })
+  test('Magic Number from Decimal', function() {
+    assert.strictEqual(getSubnetMagicNumber('248.0.0.0'), 8);
+    assert.strictEqual(getSubnetMagicNumber('255.255.255.254'), 2);
+    assert.strictEqual(getSubnetMagicNumber('255.255.255.252'), 4);
+    assert.strictEqual(getSubnetMagicNumber('255.255.255.0'), 1);
+    assert.strictEqual(getSubnetMagicNumber('255.255.254.0'), 2);
+  })
 });
 suite('Can construct the address and have all properties auto-calculate', function() {
   test('Make a new address', function() {

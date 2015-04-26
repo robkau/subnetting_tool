@@ -13,6 +13,17 @@ function Address(addressIn, maskIn) {
   this.networkClass = getNetworkInfo(this.decimalAddress, this.cidrMask).networkClass
   this.publicOrPrivate = getNetworkInfo(this.decimalAddress, this.cidrMask).publicOrPrivate
   this.nshBits = getSignificantBits(this.decimalAddress, this.cidrMask)
+
+  this.subnetMagicNumber = getSubnetMagicNumber(addressIn, maskIn)
+}
+
+function getSubnetMagicNumber(maskIn) {
+  if (maskIn[0] != '/')
+    maskIn = convertDecimalMaskToCIDR(maskIn);
+  maskIn = maskIn.slice(1);
+  if (maskIn % 8 === 0)
+    return 1
+  return Math.pow(2, 8 - (maskIn % 8))
 }
 
 function getSignificantBits(addressIn, maskIn) {
@@ -261,3 +272,4 @@ exports.getOctetValue = getOctetValue;
 exports.getNetworkInfo = getNetworkInfo;
 exports.getSignificantBits = getSignificantBits;
 exports.Address = Address;
+exports.getSubnetMagicNumber = getSubnetMagicNumber;
