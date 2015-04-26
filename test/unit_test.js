@@ -13,6 +13,7 @@ var chai = require('chai'),
   getNetworkInfo = require('./../address').getNetworkInfo,
   getSignificantBits = require('./../address').getSignificantBits,
   getSubnetMagicNumber = require('./../address').getSubnetMagicNumber,
+  generateSubnetIDs = require('./../address').generateSubnetIDs,
   Address = require('./../address').Address;
 
 
@@ -329,5 +330,14 @@ suite('Can construct the address and have all properties auto-calculate', functi
     //assert.strictEqual(newAddress.nshBits.networkBits, 24);
     assert.strictEqual(newAddress.nshBits.subnetBits, 16);
     assert.strictEqual(newAddress.nshBits.hostBits, 16);
+  });
+});
+
+suite('Can make a list of subnets from an address and mask', function() {
+  test('Can determine correct octet and generate list of network IDs', function() {
+    assert.deepEqual(generateSubnetIDs('10.10.10.10', '/1'), ['0.0.0.0', '128.0.0.0'])
+    assert.deepEqual(generateSubnetIDs('10.10.10.10', '/9'), ['10.0.0.0', '10.128.0.0'])
+    assert.deepEqual(generateSubnetIDs('10.10.10.10', '/17'), ['10.10.0.0', '10.10.128.0'])
+    assert.deepEqual(generateSubnetIDs('10.10.10.10', '/26'), ['10.10.10.0', '10.10.10.64', '10.10.10.128', '10.10.10.192'])
   });
 });

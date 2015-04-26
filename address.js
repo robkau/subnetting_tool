@@ -17,6 +17,63 @@ function Address(addressIn, maskIn) {
   this.subnetMagicNumber = getSubnetMagicNumber(addressIn, maskIn)
 }
 
+function generateSubnetIDs(addressIn, maskIn) {
+  //Figure out which octet we are modifying based off the mask
+  networks = []
+
+  var octet = Math.ceil(maskIn.slice(1) / 8);
+  var magicNumber = getSubnetMagicNumber(maskIn);
+  //First loop saves the octets that will remain unchanged, and zeroes out all the others
+  var arrayHolder = [0, 0, 0, 0]
+  for (var i = 1; i <= 4; i++) {
+    //Loop over each octet
+    if (i < octet)
+      arrayHolder[i - 1] = getOctetValue(addressIn, i);
+  }
+
+  //Now we repeatedly add the subnet values to the toReturn.networks binding, changing only the significant octet
+  var networkID = 0;
+
+  while (networkID < 256) {
+    var stringToReturn = ''
+    arrayHolder[octet - 1] = networkID;
+    for (var i = 0; i < 4; i++) {
+      stringToReturn += arrayHolder[i] + '.'
+    }
+    networks.push(stringToReturn.substring(0, stringToReturn.length - 1));
+    networkID += magicNumber;
+  }
+  return networks;
+}
+
+function binaryToString(stringIn) {
+
+}
+
+function stringToBinary(stringIn) {
+  //Takes in FOUR octets separated by periods and returns the binary representation.
+  if (stringIn[0] === '/')
+    stringIn = convertCIDRMaskToDecimal(stringIn);
+  tempString = ""
+  for (var i = 1; i <= 4; i++)
+    tempString += octetToBinary(getOctetValue(stringIn, i)) + "."
+  return tempString.substring(0, tempString.length - 1)
+}
+
+
+function octetToBinary(stringIn) {
+  //Takes in decimal number between 0 and 255. Returns an 8 character string representation in binary.
+  tempArray = [0, 0, 0, 0, 0, 0, 0, 0]
+  for (var i = 7; i >= 0; i--) {
+    if (parseInt(stringIn) >= Math.pow(2, i)) {
+      tempArray[7 - i] = 1
+      stringIn -= Math.pow(2, i)
+    }
+  }
+  return tempArray.join('')
+}
+
+
 function getSubnetMagicNumber(maskIn) {
   if (maskIn[0] != '/')
     maskIn = convertDecimalMaskToCIDR(maskIn);
@@ -219,28 +276,6 @@ function isAddressValid(addressIn) {
       throw new Error("Address sections must be between 0 and 255.")
 }
 
-function stringToBinary(stringIn) {
-  //Takes in FOUR octets separated by periods and returns the binary representation.
-  if (stringIn[0] === '/')
-    stringIn = convertCIDRMaskToDecimal(stringIn);
-  tempString = ""
-  for (var i = 1; i <= 4; i++)
-    tempString += octetToBinary(getOctetValue(stringIn, i)) + "."
-  return tempString.substring(0, tempString.length - 1)
-}
-
-
-function octetToBinary(stringIn) {
-  //Takes in decimal number between 0 and 255. Returns an 8 character string representation in binary.
-  tempArray = [0, 0, 0, 0, 0, 0, 0, 0]
-  for (var i = 7; i >= 0; i--) {
-    if (parseInt(stringIn) >= Math.pow(2, i)) {
-      tempArray[7 - i] = 1
-      stringIn -= Math.pow(2, i)
-    }
-  }
-  return tempArray.join('')
-}
 
 function getOctetValue(addressIn, octetNumber) {
 
@@ -273,3 +308,4 @@ exports.getNetworkInfo = getNetworkInfo;
 exports.getSignificantBits = getSignificantBits;
 exports.Address = Address;
 exports.getSubnetMagicNumber = getSubnetMagicNumber;
+exports.generateSubnetIDs = generateSubnetIDs;
