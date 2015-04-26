@@ -14,7 +14,9 @@ var chai = require('chai'),
   getSignificantBits = require('./../address').getSignificantBits,
   getSubnetMagicNumber = require('./../address').getSubnetMagicNumber,
   generateSubnetIDs = require('./../address').generateSubnetIDs,
+  getSubnetOfAddress = require('./../address').getSubnetOfAddress,
   Address = require('./../address').Address;
+
 
 
 //Determine whether or not we can tell if an address is valid
@@ -309,6 +311,7 @@ suite('Can calculate significant bits', function() {
     assert.strictEqual(getSubnetMagicNumber('/30'), 4);
     assert.strictEqual(getSubnetMagicNumber('/24'), 1);
     assert.strictEqual(getSubnetMagicNumber('/23'), 2);
+    assert.strictEqual(getSubnetMagicNumber('/16'), 1);
   })
   test('Magic Number from Decimal', function() {
     assert.strictEqual(getSubnetMagicNumber('248.0.0.0'), 8);
@@ -327,9 +330,14 @@ suite('Can construct the address and have all properties auto-calculate', functi
     assert.strictEqual(newAddress.cidrMask, '/16');
     assert.strictEqual(newAddress.networkClass, 'Class C');
     assert.strictEqual(newAddress.publicOrPrivate, 'Private');
-    //assert.strictEqual(newAddress.nshBits.networkBits, 24);
     assert.strictEqual(newAddress.nshBits.subnetBits, 16);
     assert.strictEqual(newAddress.nshBits.hostBits, 16);
+    assert.strictEqual(newAddress.subnetMagicNumber, 1)
+    assert.strictEqual(newAddress.network, '192.168.0.0')
+    assert.strictEqual(newAddress.addressType, 'Host')
+
+    var newAddressShortSubnetList = new Address('192.168.1.254', '255.255.255.128')
+    assert.deepEqual(newAddressShortSubnetList.networks, ['192.168.1.0', '192.168.1.128'])
   });
 });
 
@@ -339,5 +347,27 @@ suite('Can make a list of subnets from an address and mask', function() {
     assert.deepEqual(generateSubnetIDs('10.10.10.10', '/9'), ['10.0.0.0', '10.128.0.0'])
     assert.deepEqual(generateSubnetIDs('10.10.10.10', '/17'), ['10.10.0.0', '10.10.128.0'])
     assert.deepEqual(generateSubnetIDs('10.10.10.10', '/26'), ['10.10.10.0', '10.10.10.64', '10.10.10.128', '10.10.10.192'])
+      //Looked at the output of more numerous outputs and it's correct... dont feel like typing a 255 entry array
+  });
+  test('Can tell you which subnet a given address/mask falls in.', function() {
+    assert.strictEqual(getSubnetOfAddress('10.10.0.0', '/16').network, '10.10.0.0');
+    assert.strictEqual(getSubnetOfAddress('10.130.10.10', '/9').network, '10.128.0.0');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.254', '/24').network, '192.168.10.0');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.254', '/32').network, '192.168.10.254');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.253', '/31').network, '192.168.10.252');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.240', '/30').network, '192.168.10.240')
+  });
+  test('Can tell you if an address is a host, network ID, or broadcast address', function() {
+    assert.strictEqual(getSubnetOfAddress('10.10.10.10', '/8').addressType, 'Host');
+    assert.strictEqual(getSubnetOfAddress('10.10.0.0', '/16').addressType, 'Network ID');
+    assert.strictEqual(getSubnetOfAddress('10.130.10.10', '/9').addressType, 'Host');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.254', '/24').addressType, 'Host');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.254', '/32').addressType, 'Network ID');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.252', '/31').addressType, 'Network ID');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.253', '/31').addressType, 'Broadcast Address');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.240', '/30').addressType, 'Network ID');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.241', '/30').addressType, 'Host');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.242', '/30').addressType, 'Host');
+    assert.strictEqual(getSubnetOfAddress('192.168.10.243', '/30').addressType, 'Broadcast Address');
   });
 });

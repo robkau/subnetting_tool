@@ -14,7 +14,63 @@ function Address(addressIn, maskIn) {
   this.publicOrPrivate = getNetworkInfo(this.decimalAddress, this.cidrMask).publicOrPrivate
   this.nshBits = getSignificantBits(this.decimalAddress, this.cidrMask)
 
-  this.subnetMagicNumber = getSubnetMagicNumber(addressIn, maskIn)
+  this.subnetMagicNumber = getSubnetMagicNumber(this.cidrMask)
+  this.networks = generateSubnetIDs(this.decimalAddress, this.cidrMask)
+  this.network = getSubnetOfAddress(this.decimalAddress, this.cidrMask).network
+  this.addressType = getSubnetOfAddress(this.decimalAddress, this.cidrMask).addressType
+}
+
+function getSubnetOfAddress(addressIn, maskIn) {
+  var newMaskIn = maskIn.slice(1);
+  var octet = Math.ceil(newMaskIn / 8)
+  var toReturn = {
+    network: '',
+    addressType: ''
+  }
+  var arrayHolder = [0, 0, 0, 0]
+  for (var i = 1; i <= 4; i++) {
+    //Loop over each octet, save the octets that will not be changed or checked, zero out the rest
+    if (i < octet)
+      arrayHolder[i - 1] = getOctetValue(addressIn, i);
+  }
+  var thisNetwork;
+  var nextNetwork;
+  for (var i = 0; i <= 256 / getSubnetMagicNumber(maskIn); i++) {
+    if (getOctetValue(addressIn, octet) < i * getSubnetMagicNumber(maskIn)) {
+      //console.log(getOctetValue(addressIn, octet) + 'was greater than ' + i * getSubnetMagicNumber(maskIn))
+      thisNetwork = (i - 1) * getSubnetMagicNumber(maskIn)
+      nextNetwork = (i) * getSubnetMagicNumber(maskIn)
+      break;
+    }
+  }
+  arrayHolder[octet - 1] = thisNetwork
+
+  var stringToReturn = '';
+  for (var i = 0; i < 4; i++)
+    stringToReturn += arrayHolder[i] + '.'
+  toReturn.network = stringToReturn.substring(0, stringToReturn.length - 1)
+
+  //Now figure out if it's a host, network ID, or broadcast address
+  if (addressIn == toReturn.network)
+    toReturn.addressType = 'Network ID'
+  else {
+    for (var i = 4; i >= octet; i--) {
+      if (i != octet)
+        if (getOctetValue(addressIn, i) != '255') {
+          toReturn.addressType = 'Host'
+          break
+        }
+      if (i = octet)
+        if (getOctetValue(addressIn, i) != nextNetwork - 1) {
+          toReturn.addressType = 'Host'
+          break
+        }
+    }
+    if (toReturn.addressType === '')
+      toReturn.addressType = 'Broadcast Address'
+  }
+  return toReturn;
+
 }
 
 function generateSubnetIDs(addressIn, maskIn) {
@@ -31,7 +87,7 @@ function generateSubnetIDs(addressIn, maskIn) {
       arrayHolder[i - 1] = getOctetValue(addressIn, i);
   }
 
-  //Now we repeatedly add the subnet values to the toReturn.networks binding, changing only the significant octet
+  //Now we repeatedly add the subnet values to the networks binding, changing only the significant octet
   var networkID = 0;
 
   while (networkID < 256) {
@@ -46,9 +102,6 @@ function generateSubnetIDs(addressIn, maskIn) {
   return networks;
 }
 
-function binaryToString(stringIn) {
-
-}
 
 function stringToBinary(stringIn) {
   //Takes in FOUR octets separated by periods and returns the binary representation.
@@ -309,3 +362,4 @@ exports.getSignificantBits = getSignificantBits;
 exports.Address = Address;
 exports.getSubnetMagicNumber = getSubnetMagicNumber;
 exports.generateSubnetIDs = generateSubnetIDs;
+exports.getSubnetOfAddress = getSubnetOfAddress;
