@@ -1,3 +1,22 @@
+//Uncomment these if you want to run the unit tests
+/*exports.Address = Address;
+exports.isAddressValid = isAddressValid;
+exports.isMaskValid = isMaskValid;
+exports.octetToBinary = octetToBinary;
+exports.stringToBinary = stringToBinary;
+exports.isMaskValid = isMaskValid;
+exports.convertMaskToBinary = convertMaskToBinary;
+exports.convertDecimalMaskToCIDR = convertDecimalMaskToCIDR;
+exports.convertCIDRMaskToDecimal = convertCIDRMaskToDecimal;
+exports.getOctetValue = getOctetValue;
+exports.getNetworkInfo = getNetworkInfo;
+exports.getSignificantBits = getSignificantBits;
+exports.Address = Address;
+exports.getSubnetMagicNumber = getSubnetMagicNumber;
+exports.generateSubnetIDs = generateSubnetIDs;
+exports.getSubnetOfAddress = getSubnetOfAddress;*/
+
+
 function Address(addressIn, maskIn) {
   //The Address object will hold all the info abput the input address
 
@@ -23,6 +42,8 @@ function Address(addressIn, maskIn) {
 function getSubnetOfAddress(addressIn, maskIn) {
   var newMaskIn = maskIn.slice(1);
   var octet = Math.ceil(newMaskIn / 8)
+  if (newMaskIn == 0)
+    octet = 1
   var toReturn = {
     network: '',
     addressType: ''
@@ -40,6 +61,7 @@ function getSubnetOfAddress(addressIn, maskIn) {
       //console.log(getOctetValue(addressIn, octet) + 'was greater than ' + i * getSubnetMagicNumber(maskIn))
       thisNetwork = (i - 1) * getSubnetMagicNumber(maskIn)
       nextNetwork = (i) * getSubnetMagicNumber(maskIn)
+
       break;
     }
   }
@@ -54,20 +76,25 @@ function getSubnetOfAddress(addressIn, maskIn) {
   if (addressIn == toReturn.network)
     toReturn.addressType = 'Network ID'
   else {
-    for (var i = 4; i >= octet; i--) {
-      if (i != octet)
-        if (getOctetValue(addressIn, i) != '255') {
+    for (var n = 4; n >= octet; n--) {
+      if (n != octet)
+        if (getOctetValue(addressIn, n) != '255') {
           toReturn.addressType = 'Host'
-          break
+          break;
+
         }
-      if (i = octet)
-        if (getOctetValue(addressIn, i) != nextNetwork - 1) {
+      if (n == octet)
+        if (getOctetValue(addressIn, n) != nextNetwork - 1) {
           toReturn.addressType = 'Host'
-          break
+          break;
         }
     }
     if (toReturn.addressType === '')
       toReturn.addressType = 'Broadcast Address'
+  }
+  if (newMaskIn == 0) {
+    toReturn.addressType = 'Host'
+    toReturn.network = 'N/A'
   }
   return toReturn;
 
@@ -288,7 +315,7 @@ function isMaskValid(addressIn, maskIn) {
   } catch (e) {
     //Same checks as addresses, but we allow the first octet to be zero this time
     if (e.message !== "First section of address cannot be zero.")
-      throw e;
+      throw new Error(e.message.replace('Address', 'Mask') + ' Or use CIDR notation');
   }
 
 
@@ -305,11 +332,6 @@ function isMaskValid(addressIn, maskIn) {
   if (!/^(1|\.)*(0|\.)*$/.test(binaryMaskIn))
     throw new Error(
       "Invalid Mask detected. The binary representation must be sequential ones and the rest zeros");
-
-
-
-
-
 }
 
 function isAddressValid(addressIn) {
@@ -317,20 +339,23 @@ function isAddressValid(addressIn) {
   //Each section has to have 1 through 3 digits
   if (!/^(\d{1,3})(\.\d{1,3}){3}$/.test(addressIn))
     throw new Error(
-      "Invalid Address detected. Must have 4 sections, separated by periods, with 1 to 3 digits in each. Binary input addresses currently not supported.");
+      "Invalid Address detected. Must have 4 sections, separated by periods, with 1 to 3 digits in each.");
 
-  //First section cannot be zero
-  if (getOctetValue(addressIn, 1) === 0)
-    throw new Error("First section of address cannot be zero.")
+
 
   //Every section must be above 0 and below 256
   for (var i = 1; i <= 4; i++)
     if (getOctetValue(addressIn, i) < 0 || getOctetValue(addressIn, i) > 255)
       throw new Error("Address sections must be between 0 and 255.")
+
+    //First section cannot be zero
+  if (getOctetValue(addressIn, 1) === 0)
+    throw new Error("First section of address cannot be zero.")
 }
 
 
-function getOctetValue(addressIn, octetNumber) {
+function getOctetValue(addressIn, octetIn) {
+  var octetNumber = octetIn;
 
   //Returns the 1st, 2nd, 3rd, or 4th octet value as an integer. AddressIn is a string.
   if (octetNumber < 1)
@@ -342,24 +367,3 @@ function getOctetValue(addressIn, octetNumber) {
   return getOctetValue(addressIn.substring(addressIn.indexOf('.') + 1), octetNumber - 1);
 
 }
-
-
-
-
-
-exports.Address = Address;
-exports.isAddressValid = isAddressValid;
-exports.isMaskValid = isMaskValid;
-exports.octetToBinary = octetToBinary;
-exports.stringToBinary = stringToBinary;
-exports.isMaskValid = isMaskValid;
-exports.convertMaskToBinary = convertMaskToBinary;
-exports.convertDecimalMaskToCIDR = convertDecimalMaskToCIDR;
-exports.convertCIDRMaskToDecimal = convertCIDRMaskToDecimal;
-exports.getOctetValue = getOctetValue;
-exports.getNetworkInfo = getNetworkInfo;
-exports.getSignificantBits = getSignificantBits;
-exports.Address = Address;
-exports.getSubnetMagicNumber = getSubnetMagicNumber;
-exports.generateSubnetIDs = generateSubnetIDs;
-exports.getSubnetOfAddress = getSubnetOfAddress;

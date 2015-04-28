@@ -3,96 +3,84 @@
 
 //Code by Robert Kaulbach, project started 3/24/2015
 
-
 var canvas = document.getElementById('textArea');
 var ctx = canvas.getContext('2d');
+fitToContainer(canvas);
+
+function fitToContainer(canvas) {
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
 
 
 function calculateButtonValues() {
+  var canvas = document.getElementById('textArea');
+  var ctx = canvas.getContext('2d');
+
+
+
   address = document.getElementById('address').value
   mask = document.getElementById('mask').value
 
   try {
-    currentAddress = new Address(address, mask)
+    var currentAddress = new Address(address, mask)
   } catch (e) {
-
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    alert(e.message)
+    return;
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.font = "25px serif";
-  ctx.fillText("Address: " + address, 10, 50);
-  ctx.fillText("Mask: /" + cidrCounter, 10, 75);
-  ctx.fillText("This is a Class " + calcNetwork(address, cidrCounter)[0] + " " + calcNetwork(address, cidrCounter)[1] + " address.", 10, 100)
-  ctx.fillText("Binary address is: " + binaryAddress, 10, 125);
-  ctx.fillText("Binary mask is: " + maskToBinary(mask), 10, 150)
+  ctx.font = "25px lucida";
+  var items = 0
+
+  ctx.fillText("Address: " + currentAddress.decimalAddress, 10, 50 + 25 * items);
+
+  //ctx.fillText('Warning! This subnet mask is too short for the network,', 350, 50 + 25 * items)
+  //ctx.fillText('if we care about classfull addressing.', 350, 75 + 25 * items)
+
+  items++;
+  ctx.fillText("Mask: " + currentAddress.cidrMask, 10, 50 + 25 * items);
+  items++;
+
+  ctx.fillText("This is a " + currentAddress.publicOrPrivate + ' ' + currentAddress.networkClass + ' network.', 10, 50 + 25 * items);
+  items++;
+  ctx.fillText("There are " + currentAddress.nshBits.subnetBits + ' subnet bits and ' + currentAddress.nshBits.hostBits + ' host bits.', 10, 50 + 25 * items);
+  items++;
+
+  ctx.fillText('This address is a ' + currentAddress.addressType + ' in the ' + currentAddress.network + currentAddress.cidrMask + ' network.', 10, 50 + 25 * items);
+  items++;
+
+  ctx.fillText('There are ' + (((Math.pow(2, parseInt(currentAddress.nshBits.hostBits)) - 2) < 0) ? '0' : ((Math.pow(2, parseInt(currentAddress.nshBits.hostBits))) - 2)) + ' possible hosts in this network.', 10, 50 + 25 * items);
+  items++
+  items++
+
+  ctx.fillText('Binary form:', 10, 50 + 25 * items);
+  items++
+  ctx.fillText(currentAddress.binaryAddress + ' : Address', 10, 50 + 25 * items);
+  items++
+  ctx.fillText(currentAddress.binaryMask + ' : Mask', 10, 50 + 25 * items);
+  items++
 
 
 
-
-
-  //print all red network bits
-  ctx.fillStyle = "#ff0000";
-  var tostring = []
-  var totalWidthOne = 0
-  var totalWidthTwo = 0
-  for (i = 0; i < nshBits[0]; i++) {
-    if (binaryAddress[i] == '.') {
-      nshBits[0]++
-    } else {
-      tostring[i] = binaryAddress[i]
-    }
-  }
-  ctx.fillText(tostring, 10, 200)
-  totalWidthOne = ctx.measureText(tostring).width
-  tostring = []
-    //print all green subnet bits on same line
-  ctx.fillStyle = "#00ff00";
-
-  for (i = 0; i < nshBits[1]; i++) {
-    if (binaryAddress[i] == '.') {
-      nshBits[1]++
-    } else {
-      tostring[i] = binaryAddress[i + nshBits[0]]
-    }
-  }
-  ctx.fillText(tostring, totalWidthOne + 10, 200)
-  totalWidthTwo = ctx.measureText(tostring).width
-  tostring = []
-    //print all blue host bits on same line
-  ctx.fillStyle = "#0000ff";
-
-  for (i = 0; i < nshBits[2]; i++) {
-    if (binaryAddress[i] == '.') {
-      nshBits[2]++
-    } else {
-      tostring[i] = binaryAddress[i + nshBits[0] + nshBits[1]]
-    }
-  }
-  ctx.fillText(tostring, totalWidthOne + totalWidthTwo + 10, 200)
-
-  ctx.fillStyle = "#ff0000";
-  ctx.fillText(nshBits[0] + " network bits", 10, 225)
-  ctx.fillStyle = "#00ff00";
-  ctx.fillText(nshBits[1] + " subnet bits", 10 + (totalWidthOne * 1.5), 225)
-  ctx.fillStyle = "#0000ff";
-  ctx.fillText(nshBits[2] + " host bits", 10 + totalWidthOne + totalWidthTwo + ctx.measureText(tostring).width * .5, 225)
-    //    ctx.fillText("There are " + dotdotdot + " subnets",10,250)
-    //    ctx.fillText("Each subnet has " + dotdotdot + "hosts",10,275)
-}
-
-
-
-function Address(addressIn, maskIn) {
-  this.binaryAddress = addressToBinary(addressIn)
-  this.binaryMask = maskToBinary(maskIn)
-
-  info = getNetworkInfo(this.binaryAddress, this.binaryMask)
-  this.class = info.class
-  this.pubOrPriv = info.pubOrPriv
-  this.nshBits = info.nshBits
-}
-
+  //ctx.fillText('The networks for this subnet are: ' + currentAddress.networks, 10, 50 + 25 * items);
+  //items++
 
 
 
 }
+
+
+
+
+/*
+this.binaryAddress = stringToBinary(addressIn)
+this.binaryMask = stringToBinary(maskIn)
+
+
+this.subnetMagicNumber = getSubnetMagicNumber(this.cidrMask)
+this.networks = generateSubnetIDs(this.decimalAddress, this.cidrMask)
+*/

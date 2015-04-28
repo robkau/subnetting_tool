@@ -1,0 +1,72 @@
+* {
+  font: lucida;
+}
+
+body,
+html {
+  overflow: hidden;
+  color: #000;
+  background: #aaa;
+  height: 100%;
+  margin: -10px 0 0 0;
+}
+
+#titleText {
+  font-weight: bold;
+  font-size: 50px;
+  margin-left: 1%;
+  line-height: 80px;
+}
+
+#wrap {
+  width: 100%;
+  background: #aaa;
+  height: 100%;
+}
+
+#header {
+  background: #aaa;
+  height: 10%;
+}
+
+#sidebar {
+  float: left;
+  background: #c99;
+  width: 25%;
+  height: 70%;
+}
+
+#content {
+  float: right;
+  width: 75%;
+  height: 70%;
+  background: #9c9;
+}
+
+#footer {
+  width: 100%;
+  clear: both;
+  background: #cc9;
+  height: 5%;
+  text-align: center;
+}
+
+span {
+  display: inline-block;
+  vertical-align: middle;
+  width: 100%;
+}
+
+#address {
+  font-size: 18px;
+  width: 98%;
+  float: center;
+  margin-left: 2px;
+}
+
+#mask {
+  font-size: 18px;
+  width: 98%;
+  float: center;
+  margin-left: 2px;
+}
